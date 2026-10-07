@@ -1,694 +1,376 @@
-<!doctype html>
-<html lang="es-CO">
+<!DOCTYPE html>
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b4f8a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Mi Presión</title>
 <style>
-  :root {
-    --scale: 1;
-    --bg: #f7f5f0; --card: #ffffff; --text: #1a1a1a; --muted: #444;
-    --primary: #0b4f8a; --primary-text: #ffffff; --border: #555;
-    --ok: #e3f4e6; --ok-b: #1e6b2f;
-    --warn: #fff3cd; --warn-b: #7a5a00;
-    --high: #ffe2cc; --high-b: #8a3b00;
-    --danger: #ffd9d9; --danger-b: #9b0000;
-  }
-  * { box-sizing: border-box; }
-  html { font-size: calc(20px * var(--scale)); }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.45; }
-  main { max-width: 640px; margin: 0 auto; padding: 0 16px 48px; }
-  h1 { font-size: 1.6rem; margin: .4em 0 .6em; }
-  h2 { font-size: 1.35rem; margin: .4em 0 .5em; }
-  p { margin: .4em 0; }
-  .screen { display: none; }
-  .screen.active { display: block; }
-  .card { background: var(--card); border: 2px solid #d8d4cc; border-radius: 16px; padding: 18px; margin: 14px 0; }
-  button, .btn { font: inherit; font-size: 1rem; min-height: 56px; min-width: 56px; padding: 12px 18px;
-         border-radius: 14px; border: 2px solid var(--border); background: var(--card); color: var(--text);
-         cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
-  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px solid #f2a900; outline-offset: 2px; }
-  .primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); font-weight: 700; }
-  .giant { width: 100%; min-height: 96px; font-size: 1.35rem; }
-  .full { width: 100%; margin-top: 12px; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > * { flex: 1 1 140px; }
-  .link { border: none; background: none; color: var(--primary); text-decoration: underline; min-height: 48px; padding: 6px; }
-  .progress { font-weight: 700; color: var(--muted); }
-  .numbox { display: flex; align-items: center; gap: 12px; margin: 18px 0; }
-  .numbox button { font-size: 2rem; width: 80px; height: 80px; flex: none; }
-  .numbox input { flex: 1; min-width: 0; font-size: 2.6rem; text-align: center; height: 96px; font-weight: 700;
-         border: 3px solid var(--border); border-radius: 14px; }
-  .unit { text-align: center; color: var(--muted); }
-  .msg { border-left: 8px solid; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
-  .msg.warn { background: var(--warn); border-color: var(--warn-b); }
-  .msg.danger { background: var(--danger); border-color: var(--danger-b); font-weight: 600; }
-  .msg.ok { background: var(--ok); border-color: var(--ok-b); }
-  .choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
-  .choice { flex-direction: column; min-height: 88px; text-align: center; }
-  .choice .ico { font-size: 1.8rem; line-height: 1; }
-  .choice[aria-pressed="true"] { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; }
-  .choice[aria-pressed="true"]::after { content: "✓ elegido"; font-size: .8rem; }
-  .quien { font-size: 1.3rem; min-height: 80px; }
-  input[type=datetime-local], input[type=text], input[type=url], textarea { font: inherit; width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px; }
-  label { font-weight: 600; display: block; margin-top: 12px; }
-  .badge { display: inline-block; padding: 6px 12px; border-radius: 10px; border: 2px solid; font-weight: 700; }
-  .b-normal { background: var(--ok); border-color: var(--ok-b); color: var(--ok-b); }
-  .b-elevada { background: var(--warn); border-color: var(--warn-b); color: var(--warn-b); }
-  .b-etapa1 { background: var(--high); border-color: var(--high-b); color: var(--high-b); }
-  .b-etapa2, .b-crisis { background: var(--danger); border-color: var(--danger-b); color: var(--danger-b); }
-  .big-values { font-size: 2rem; font-weight: 800; }
-  .sumrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid #ddd; padding: 8px 0; }
-  .sumrow b { font-size: 1.1rem; }
-  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: left; }
-  th { background: #ece8df; }
-  .disclaimer { font-size: .85rem; color: var(--muted); margin-top: 24px; }
-  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #222; color: #fff;
-           padding: 12px 16px; border-radius: 12px; display: none; gap: 12px; align-items: center; max-width: calc(100% - 32px); z-index: 20; }
-  .toast.show { display: flex; }
-  .toast button { background: #fff; color: #222; min-height: 48px; }
-  svg text { font-size: 13px; fill: #333; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
-  .print-only { display: none; }
-  #estado { position: sticky; top: 0; z-index: 10; width: 100%; min-height: 48px; margin: 0 0 8px; border-radius: 0 0 14px 14px;
-            font-size: .85rem; font-weight: 600; padding: 8px 12px; justify-content: flex-start; text-align: left; }
-  #estado.ok { background: var(--ok); border-color: var(--ok-b); color: var(--ok-b); }
-  #estado.pend { background: var(--warn); border-color: var(--warn-b); color: var(--warn-b); }
-  #estado.err { background: var(--danger); border-color: var(--danger-b); color: var(--danger-b); }
-  #estado.off { background: #e8e8e8; border-color: #666; color: #333; }
-  .grande-btn-quien { width: 100%; }
-  @media print {
-    body { background: #fff; }
-    .no-print, .toast, #estado { display: none !important; }
-    .print-only { display: block; }
-    .card { border: 1px solid #999; }
-  }
+:root{--az:#0b4f8a;--bg:#f3f6fa;--tx:#1b2430;--gr:#5d6b7a;--ln:#d7dee6;--ok:#1e7e34;--am:#b7791f;--rj:#b00020}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:18px;padding-bottom:40px}
+header{background:var(--az);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:20px;margin:0}
+header button{background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer}
+#barra{padding:10px 16px;font-size:15px;cursor:pointer;background:#e4e9ef;color:var(--tx)}
+#barra.ok{background:#d9f0de;color:#14532d}#barra.pend{background:#fff3cd;color:#7a5a00}#barra.err{background:#ffd9d9;color:#7a0012}#barra.sync{background:#dbe9f8;color:#0b3a66}
+main{max-width:640px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:19px;margin:0 0 10px}
+label{display:block;font-weight:600;margin:12px 0 4px;font-size:16px}
+input,select,textarea{width:100%;font:inherit;padding:12px;border:1px solid var(--ln);border-radius:10px;background:#fff}
+.fila{display:flex;gap:10px}.fila>div{flex:1}
+.btn{display:block;width:100%;padding:14px;font:inherit;font-weight:700;border:0;border-radius:12px;background:var(--az);color:#fff;cursor:pointer;margin-top:12px}
+.btn.sec{background:#fff;color:var(--az);border:2px solid var(--az)}
+.btn.rj{background:var(--rj)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 12px;border:2px solid var(--ln);border-radius:20px;background:#fff;font-size:16px;cursor:pointer;user-select:none}
+.chip.on{border-color:var(--az);background:#dbe9f8;font-weight:700}
+.animos .chip{flex:1;text-align:center;padding:10px 4px;font-size:14px}
+.reg{border-left:6px solid var(--ln)}
+.reg .val{font-size:26px;font-weight:800}
+.reg small{color:var(--gr);display:block}
+.reg .acc{display:flex;gap:8px;margin-top:8px}
+.reg .acc button{flex:1;padding:8px;font:inherit;font-size:15px;border:1px solid var(--ln);background:#fff;border-radius:8px;cursor:pointer}
+.c-n{border-color:#2e9d4a}.c-e{border-color:#d4b106}.c-1{border-color:#e8821a}.c-2{border-color:#d9441f}.c-m{border-color:var(--rj);background:#fff5f5}
+.etq{display:inline-block;font-size:14px;padding:2px 8px;border-radius:10px;background:#eee;margin-top:4px}
+.vacio{text-align:center;color:var(--gr);padding:20px}
+.oculto{display:none}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+#modal .caja{background:#fff;border-radius:14px;padding:20px;max-width:440px;width:100%}
+#modal h3{margin:0 0 10px;color:var(--rj)}
+.nota{font-size:14px;color:var(--gr);margin-top:6px}
 </style>
 </head>
 <body>
+<header><h1>❤️ Mi Presión</h1><button id="bAjustes" aria-label="Ajustes">⚙️</button></header>
+<div id="barra">Sin conectar a la hoja de Google</div>
 <main>
-<button id="estado" class="off no-print" onclick="estadoClick()">…</button>
-
-<!-- INICIO -->
-<section id="inicio" class="screen active">
-  <h1 id="saludo">Mi Presión</h1>
-  <div id="bannerConfig"></div>
-  <button class="primary giant" onclick="iniciarRegistro()">➕ Registrar presión</button>
-  <div id="ultimo" class="card"></div>
-  <div class="row">
-    <button onclick="ir('historial')">📋 Ver historial</button>
-    <button onclick="ir('tendencias')">📈 Reporte para el médico</button>
-  </div>
-  <div class="row" style="margin-top:12px">
-    <button onclick="ir('ayuda')">❓ ¿Cómo se mide?</button>
-    <button onclick="ir('ajustes')">⚙️ Ajustes</button>
-  </div>
-  <p class="disclaimer">Esta aplicación no reemplaza la consulta médica. Los mensajes de estado son orientativos.</p>
-</section>
-
-<!-- AYUDA -->
-<section id="ayuda" class="screen">
-  <h1>¿Cómo se mide la presión?</h1>
-  <div class="card">
-    <p><b>1.</b> La persona debe estar sentada y tranquila 5 minutos, con la espalda apoyada y los pies en el piso.</p>
-    <p><b>2.</b> Ponga el brazalete en el brazo desnudo, a la altura del corazón. No deben hablar ni moverse.</p>
-    <p><b>3.</b> Anote los tres números de la pantalla: el de arriba, el de abajo y el pulso.</p>
-    <p>Evitar café, cigarrillo y ejercicio 30 minutos antes.</p>
-  </div>
-  <button class="primary full" onclick="ir('inicio')">Volver al inicio</button>
-</section>
-
-<!-- REGISTRO GUIADO -->
-<section id="registro" class="screen"><div id="wiz"></div></section>
-
-<!-- GUARDADO -->
-<section id="guardado" class="screen">
-  <h1>✅ Registro guardado</h1>
-  <div id="guardadoInfo"></div>
-  <button class="primary full" onclick="ir('inicio')">Volver al inicio</button>
-</section>
-
-<!-- HISTORIAL -->
-<section id="historial" class="screen">
-  <h1>Historial</h1>
-  <div class="row" role="group" aria-label="Filtrar por periodo">
-    <button class="filtro" data-dias="7" onclick="filtrar(7)">Semana</button>
-    <button class="filtro" data-dias="30" onclick="filtrar(30)">Mes</button>
-    <button class="filtro" data-dias="0" onclick="filtrar(0)">Todo</button>
-  </div>
+<section id="vInicio">
+  <button class="btn" id="bNuevo">➕ Registrar presión</button>
+  <div id="resumen" class="card" style="margin-top:14px"></div>
+  <h2>Historial</h2>
   <div id="lista"></div>
-  <button class="primary full" onclick="ir('inicio')">Volver al inicio</button>
 </section>
 
-<!-- TENDENCIAS Y REPORTE -->
-<section id="tendencias" class="screen">
-  <h1>Tendencias y reporte</h1>
-  <div class="print-only"><p id="reporteEncabezado"></p></div>
-  <div id="promedios" class="card"></div>
+<section id="vForm" class="oculto">
   <div class="card">
-    <h2>Gráfico</h2>
-    <div class="legend"><span>⬤ <b style="color:#b00020">Número de arriba</b></span><span>■ <b style="color:#0b4f8a">Número de abajo</b></span></div>
-    <div id="grafico"></div>
-  </div>
-  <div class="card"><h2>Tabla de mediciones</h2><div id="tabla"></div></div>
-  <p class="print-only disclaimer">Clasificación orientativa (ACC/AHA 2017). No reemplaza la valoración médica.</p>
-  <div class="no-print">
-    <button class="primary full" onclick="window.print()">🖨️ Imprimir o guardar PDF</button>
-    <a id="verHoja" class="btn full" style="display:none;text-decoration:none" target="_blank" rel="noopener">📊 Abrir la hoja de Google</a>
-    <button class="full" onclick="ir('inicio')">Volver al inicio</button>
+    <h2 id="tituloForm">Registrar presión</h2>
+    <div class="fila">
+      <div><label for="fS">Número de arriba (sistólica)</label><input id="fS" type="number" inputmode="numeric" min="1" max="400" placeholder="120"></div>
+      <div><label for="fD">Número de abajo (diastólica)</label><input id="fD" type="number" inputmode="numeric" min="1" max="400" placeholder="80"></div>
+    </div>
+    <label for="fP">Pulso (latidos por minuto)</label>
+    <input id="fP" type="number" inputmode="numeric" min="1" max="400" placeholder="70">
+    <label>Ánimo</label>
+    <div class="chips animos" id="animos"></div>
+    <label>Síntomas</label>
+    <div class="chips" id="sintomas"></div>
+    <label for="fN">Nota (opcional)</label>
+    <textarea id="fN" rows="2" maxlength="500"></textarea>
+    <label for="fF">Fecha y hora de la medición</label>
+    <input id="fF" type="datetime-local">
+    <label>¿Quién registra?</label>
+    <div class="chips" id="quien"></div>
+    <div id="errForm" style="color:var(--rj);font-weight:700;margin-top:10px"></div>
+    <button class="btn" id="bGuardar">💾 Guardar</button>
+    <button class="btn sec" id="bCancelar">Cancelar</button>
   </div>
 </section>
 
-<!-- AJUSTES -->
-<section id="ajustes" class="screen">
-  <h1>Ajustes</h1>
+<section id="vAjustes" class="oculto">
   <div class="card">
     <h2>Conexión con la hoja de Google</h2>
-    <p>Esto se hace una sola vez en cada celular. Lo más fácil es abrir el <b>enlace de configuración</b> que le comparta otro familiar.</p>
-    <label for="cUrl">Dirección del script</label>
-    <input id="cUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
-    <label for="cCodigo">Código familiar</label>
-    <input id="cCodigo" type="text" autocomplete="off" autocapitalize="off">
-    <label for="cPaciente">Nombre del paciente</label>
-    <input id="cPaciente" type="text" autocomplete="off">
-    <label>Personas que registran (hasta 3)</label>
-    <input id="cQ1" type="text" placeholder="Nombre 1" autocomplete="off" style="margin-bottom:8px">
-    <input id="cQ2" type="text" placeholder="Nombre 2" autocomplete="off" style="margin-bottom:8px">
-    <input id="cQ3" type="text" placeholder="Nombre 3" autocomplete="off">
-    <label for="cHoja">Enlace de la hoja de Google (opcional)</label>
-    <input id="cHoja" type="url" inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/..." autocomplete="off">
-    <label for="cDisp">Nombre de este celular</label>
-    <input id="cDisp" type="text" autocomplete="off">
-    <button class="primary full" onclick="guardarConexion()">✔ Probar y guardar conexión</button>
-    <div id="resConexion" aria-live="polite"></div>
-    <button class="full" onclick="compartirConfig()">📤 Compartir enlace de configuración</button>
-    <p style="font-size:.85rem">El enlace incluye el código familiar. Compártalo solo con la familia.</p>
+    <label for="aUrl">Dirección del script (termina en /exec)</label>
+    <input id="aUrl" type="url" autocapitalize="off" autocomplete="off">
+    <label for="aCod">Código familiar</label>
+    <input id="aCod" type="text" autocapitalize="off" autocomplete="off">
+    <label for="aPac">Nombre del paciente</label>
+    <input id="aPac" type="text">
+    <label for="aPer">Personas que registran (separadas por coma)</label>
+    <input id="aPer" type="text" placeholder="Ana, Luis, Marta">
+    <label for="aHoja">Enlace de la hoja de Google (opcional)</label>
+    <input id="aHoja" type="url" autocapitalize="off">
+    <label for="aDisp">Nombre de este celular</label>
+    <input id="aDisp" type="text" placeholder="Celular de Ana">
+    <div id="msgAj" style="margin-top:10px;font-weight:700"></div>
+    <button class="btn" id="bProbar">Probar y guardar conexión</button>
+    <button class="btn sec" id="bCompartir">Compartir enlace de configuración</button>
+    <button class="btn sec" id="bHoja">Abrir la hoja de Google</button>
+    <button class="btn sec" id="bVolver">Volver</button>
+    <button class="btn rj" id="bOlvidar">Olvidar datos de este celular</button>
+    <p class="nota">Esta aplicación registra y muestra información. No diagnostica ni reemplaza la consulta médica.</p>
   </div>
-  <div class="card">
-    <h2>Tamaño de la letra</h2>
-    <div class="row">
-      <button onclick="setEscala(1)">A</button>
-      <button onclick="setEscala(1.2)" style="font-size:1.2rem">A</button>
-      <button onclick="setEscala(1.4)" style="font-size:1.4rem">A</button>
-    </div>
-  </div>
-  <div class="card">
-    <h2>Copia en este celular</h2>
-    <p>La hoja de Google ya es la copia principal. Este archivo es un respaldo adicional.</p>
-    <button class="full" onclick="exportar()">💾 Descargar copia</button>
-  </div>
-  <div class="card">
-    <h2>Borrar la memoria de este celular</h2>
-    <p>No borra la hoja de Google. Solo olvida los datos guardados aquí y los vuelve a descargar de la hoja.</p>
-    <button class="full" style="border-color:var(--danger-b);color:var(--danger-b)" onclick="olvidarLocal()">🧹 Olvidar datos de este celular</button>
-  </div>
-  <button class="primary full" onclick="ir('inicio')">Volver al inicio</button>
 </section>
 </main>
-<div id="toast" class="toast" role="status" aria-live="polite"><span id="toastTxt"></span><button id="toastBtn">Deshacer</button></div>
+<div id="modal" class="oculto"><div class="caja" id="modalCaja"></div></div>
 
 <script>
-// ===================== Almacenamiento local =====================
-const K_REGS = 'pa2_regs', K_COLA = 'pa2_cola', K_AJ = 'pa2_ajustes';
-function leer(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
-function escribir(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+(function(){
+'use strict';
+var SINT={dolor_cabeza:'Dolor de cabeza',mareo:'Mareo',cansancio:'Cansancio',palpitaciones:'Palpitaciones',falta_aire:'Falta de aire',dolor_pecho:'Dolor de pecho',vision_borrosa:'Visión borrosa',nauseas:'Náuseas',dolor_cuello:'Dolor de cuello',hormigueo:'Hormigueo',ninguno:'Ninguno'};
+var ANIMOS=['Muy mal','Mal','Regular','Bien','Muy bien'];
+var K='mipresion.v1';
+var $=function(id){return document.getElementById(id)};
+var S={cfg:{url:'',cod:'',pac:'',per:[],hoja:'',disp:''},regs:{},pend:{},ultSync:0};
+var F={id:null,animo:null,sint:{},quien:''};
+var sincronizando=false,estadoBarra='';
 
-let regs = leer(K_REGS, {});     // id -> registro (copia de la hoja + cambios pendientes)
-let cola = leer(K_COLA, []);     // registros pendientes de enviar a la hoja
-let ajustes = Object.assign({ escala: 1, url: '', codigo: '', paciente: '', cuidadores: [], hoja: '', disp: '' }, leer(K_AJ, {}));
-if (!ajustes.disp) { ajustes.disp = 'Celular ' + Math.floor(1000 + Math.random() * 9000); }
-const persistir = () => { escribir(K_REGS, regs); escribir(K_COLA, cola); escribir(K_AJ, ajustes); };
-const configurado = () => !!(ajustes.url && ajustes.codigo);
+function cargar(){try{var j=JSON.parse(localStorage.getItem(K));if(j){S=j;S.cfg=S.cfg||{};S.regs=S.regs||{};S.pend=S.pend||{}}}catch(e){}}
+function guardarLocal(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function conectado(){return !!(S.cfg.url&&S.cfg.cod)}
+function vista(n){['vInicio','vForm','vAjustes'].forEach(function(v){$(v).classList.toggle('oculto',v!==n)});window.scrollTo(0,0)}
 
-// "Activos" = no eliminados
-const activos = () => Object.values(regs).filter(r => r.estado === 'Activo');
-const ordenados = () => activos().sort((a, b) => b.fechaHora.localeCompare(a.fechaHora));
-
-// ===================== Datos de referencia =====================
-const ANIMOS = [
-  { v: 1, ico: '😣', t: 'Muy mal' }, { v: 2, ico: '🙁', t: 'Mal' }, { v: 3, ico: '😐', t: 'Regular' },
-  { v: 4, ico: '🙂', t: 'Bien' }, { v: 5, ico: '😄', t: 'Muy bien' }];
-const SINTOMAS = [
-  ['dolor_cabeza', '🤕', 'Dolor de cabeza'], ['mareo', '💫', 'Mareo'], ['cansancio', '😴', 'Cansancio'],
-  ['palpitaciones', '💓', 'Palpitaciones'], ['falta_aire', '😮‍💨', 'Falta de aire'], ['dolor_pecho', '💔', 'Dolor de pecho'],
-  ['vision_borrosa', '👓', 'Visión borrosa'], ['nauseas', '🤢', 'Náuseas'], ['dolor_cuello', '🦒', 'Dolor de cuello'],
-  ['hormigueo', '✋', 'Hormigueo'], ['ninguno', '👍', 'Ninguno']];
-const nombreSintoma = id => (SINTOMAS.find(s => s[0] === id) || [, , id])[2];
-
-// Clasificación orientativa ACC/AHA 2017 — debe validarla un profesional de salud.
-function clasificar(s, d) {
-  if (s > 180 || d > 120) return { k: 'crisis', t: 'Muy alta (rango de crisis)', ico: '🚨' };
-  if (s >= 140 || d >= 90) return { k: 'etapa2', t: 'Alta (etapa 2)', ico: '⚠️' };
-  if (s >= 130 || d >= 80) return { k: 'etapa1', t: 'Alta (etapa 1)', ico: '⚠️' };
-  if (s >= 120) return { k: 'elevada', t: 'Elevada', ico: 'ℹ️' };
-  return { k: 'normal', t: 'Normal', ico: '✅' };
+/* ---------- clasificación (misma lógica del script) ---------- */
+function clasif(s,d){
+  if(s>180||d>120)return{t:'Muy alta (rango de crisis)',c:'c-m'};
+  if(s>=140||d>=90)return{t:'Alta (etapa 2)',c:'c-2'};
+  if(s>=130||d>=80)return{t:'Alta (etapa 1)',c:'c-1'};
+  if(s>=120)return{t:'Elevada',c:'c-e'};
+  return{t:'Normal',c:'c-n'};
 }
-function requiereAlerta(r) {
-  return clasificar(r.sistolica, r.diastolica).k === 'crisis' ||
-    r.sintomas.includes('dolor_pecho') || r.sintomas.includes('falta_aire');
-}
-const ALERTA = 'Si siente dolor de pecho, falta de aire o debilidad repentina, busque atención médica de inmediato o llame a la línea de emergencias (123).';
+function necesitaAlerta(r){return r.sistolica>180||r.diastolica>120||(r.sintomas||[]).indexOf('dolor_pecho')>=0||(r.sintomas||[]).indexOf('falta_aire')>=0}
 
-// ===================== Utilidades =====================
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const aLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-const ahoraLocal = () => aLocal(new Date());
-const isoALocal = iso => aLocal(new Date(iso));
-const fmtFecha = iso => new Date(iso).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
-const badge = (s, d) => { const c = clasificar(s, d); return `<span class="badge b-${c.k}">${c.ico} ${c.t}</span>`; };
-const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-
-let pantalla = 'inicio';
-function ir(id) {
-  pantalla = id;
-  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
-  if (id === 'inicio') pintarInicio();
-  if (id === 'historial') filtrar(filtroActual);
-  if (id === 'tendencias') pintarTendencias();
-  if (id === 'ajustes') pintarAjustes();
-  window.scrollTo(0, 0);
-  const h = document.querySelector(`#${id} h1, #${id} h2`); if (h) { h.tabIndex = -1; h.focus(); }
+/* ---------- barra de estado ---------- */
+function pintarBarra(){
+  var b=$('barra'),n=Object.keys(S.pend).length;
+  if(!conectado()){b.className='';b.textContent='Sin conectar a la hoja de Google. Toque aquí para configurar.';return}
+  if(sincronizando){b.className='sync';b.textContent='🔄 Sincronizando…';return}
+  if(estadoBarra){b.className='err';b.textContent=estadoBarra;return}
+  if(n){b.className='pend';b.textContent='⏳ '+n+' pendiente(s) de enviar. Toque para reintentar.';return}
+  b.className='ok';b.textContent='✅ Guardado en la hoja de Google';
 }
-function refrescarPantalla() {
-  if (pantalla === 'inicio') pintarInicio();
-  else if (pantalla === 'historial') filtrar(filtroActual);
-  else if (pantalla === 'tendencias') pintarTendencias();
+$('barra').onclick=function(){if(!conectado())abrirAjustes();else sincronizar()};
+
+/* ---------- red ---------- */
+function post(registro){
+  return fetch(S.cfg.url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({codigo:S.cfg.cod,accion:'guardar',registro:registro})}).then(function(r){return r.json()});
+}
+function get(params){
+  var u=S.cfg.url+(S.cfg.url.indexOf('?')<0?'?':'&')+params;
+  return fetch(u,{redirect:'follow'}).then(function(r){return r.json()});
+}
+function errTexto(e){
+  if(e&&e.error==='codigo')return'❌ El código familiar no coincide. Revíselo en Ajustes.';
+  return'❌ La dirección del script no responde bien. Revísela en Ajustes.';
 }
 
-let toastTimer;
-function toast(txt, deshacer) {
-  $('toastTxt').textContent = txt;
-  $('toastBtn').style.display = deshacer ? '' : 'none';
-  $('toastBtn').onclick = () => { deshacer(); $('toast').classList.remove('show'); };
-  $('toast').classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 8000);
-}
-
-// ===================== Sincronización con la hoja de Google =====================
-let sincronizando = false, errorSync = null, ultimaSync = leer('pa2_ultima', 0), fallidos = 0;
-
-async function llamar(metodo, cuerpo, params) {
-  let url = ajustes.url; const opts = { method: metodo };
-  if (metodo === 'POST') {
-    // text/plain evita la consulta previa (preflight) que Apps Script no responde.
-    opts.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
-    opts.body = JSON.stringify(cuerpo);
-  } else {
-    url += (url.includes('?') ? '&' : '?') + new URLSearchParams(params);
-  }
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000); opts.signal = ctl.signal;
-  try {
-    const res = await fetch(url, opts);
-    try { return await res.json(); } catch { throw { respuestaInvalida: true }; }
-  } finally { clearTimeout(t); }
-}
-
-async function sync() {
-  if (!configurado()) { pintarEstado(); return; }
-  if (sincronizando) return;
-  sincronizando = true; errorSync = null; pintarEstado();
-  try {
-    while (cola.length) {
-      const rec = cola[0];
-      const r = await llamar('POST', { accion: 'guardar', codigo: ajustes.codigo, registro: rec });
-      if (!r.ok && r.error === 'codigo') throw { codigo: true };
-      if (!r.ok) { fallidos++; }
-      cola = cola.filter(x => !(x.id === rec.id && x.rev === rec.rev));
-      persistir();
-    }
-    const l = await llamar('GET', null, { accion: 'listar', codigo: ajustes.codigo });
-    if (!l.ok) throw l.error === 'codigo' ? { codigo: true } : { respuestaInvalida: true };
-    // La hoja es la fuente de verdad; se conservan los cambios aún pendientes.
-    const nuevo = {};
-    l.registros.forEach(r => { nuevo[r.id] = r; });
-    cola.forEach(r => { if (!nuevo[r.id] || r.rev > nuevo[r.id].rev) nuevo[r.id] = r; });
-    regs = nuevo; ultimaSync = Date.now(); escribir('pa2_ultima', ultimaSync); persistir();
-  } catch (e) {
-    errorSync = e.codigo ? 'codigo' : e.respuestaInvalida ? 'config' : 'red';
-  }
-  sincronizando = false; pintarEstado(); refrescarPantalla();
-  if (!errorSync && cola.length) sync();   // se guardó algo mientras se sincronizaba
-}
-
-function pintarEstado() {
-  const b = $('estado'); let cls, txt;
-  if (!configurado()) { cls = 'off'; txt = '⚙️ Sin conectar a la hoja de Google. Toque aquí para configurar.'; }
-  else if (sincronizando) { cls = 'pend'; txt = '🔄 Sincronizando con la hoja de Google…'; }
-  else if (errorSync === 'codigo') { cls = 'err'; txt = '⚠️ El código familiar no coincide. Toque para revisar.'; }
-  else if (errorSync === 'config') { cls = 'err'; txt = '⚠️ La dirección del script no responde bien. Toque para revisar.'; }
-  else if (errorSync === 'red') { cls = 'pend'; txt = cola.length ? `⏳ ${cola.length} pendiente(s) de enviar. Sin conexión. Toque para reintentar.` : '📵 Sin conexión. Toque para reintentar.'; }
-  else if (cola.length) { cls = 'pend'; txt = `⏳ ${cola.length} pendiente(s) de enviar. Toque para enviar.`; }
-  else { cls = 'ok'; txt = '✅ Guardado en la hoja de Google' + (ultimaSync ? ' · ' + hace(ultimaSync) : ''); }
-  b.className = cls + ' no-print'; b.textContent = txt;
-  if (fallidos) { toast(`${fallidos} registro(s) fueron rechazados por la hoja. Revise los datos.`); fallidos = 0; }
-}
-function hace(t) {
-  const m = Math.round((Date.now() - t) / 60000);
-  return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`;
-}
-function estadoClick() { if (!configurado() || errorSync === 'codigo' || errorSync === 'config') ir('ajustes'); else sync(); }
-
-function guardarRegistro(rec) {
-  rec.rev = new Date().toISOString();
-  regs[rec.id] = rec;
-  cola = cola.filter(x => x.id !== rec.id); cola.push(rec);
-  persistir(); pintarEstado(); sync();
-}
-
-// Sincronizar al abrir, al volver la conexión, al volver a la app y cada minuto
-window.addEventListener('online', sync);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
-setInterval(() => { if (!document.hidden) { sync(); pintarEstado(); } }, 60000);
-
-// ===================== Inicio =====================
-function pintarInicio() {
-  $('saludo').textContent = ajustes.paciente ? `Presión de ${ajustes.paciente}` : 'Mi Presión';
-  $('bannerConfig').innerHTML = configurado() ? '' :
-    `<div class="msg warn"><b>Falta conectar con la hoja de Google.</b> Mientras tanto los registros solo se guardan en este celular.
-     <button class="full" onclick="ir('ajustes')">⚙️ Configurar ahora</button></div>`;
-  const u = ordenados()[0];
-  $('ultimo').innerHTML = u
-    ? `<p><b>Último registro</b> — ${esc(fmtFecha(u.fechaHora))}</p>
-       <p class="big-values">${u.sistolica}/${u.diastolica} <small style="font-size:1rem">· pulso ${u.pulso}</small></p>
-       <p>${badge(u.sistolica, u.diastolica)}</p><p>Registró: ${esc(u.quien)}</p>`
-    : '<p>Todavía no hay registros. Toque el botón azul para empezar.</p>';
-}
-
-// ===================== Registro guiado =====================
-let borrador, paso, editando = false, confirmado = {}, desdeResumen = false, PASOS = [];
-const NUM = {
-  sistolica: { titulo: 'Número de arriba', sub: '(sistólica)', unidad: 'mmHg', min: 60, max: 260, def: 120 },
-  diastolica: { titulo: 'Número de abajo', sub: '(diastólica)', unidad: 'mmHg', min: 30, max: 150, def: 80 },
-  pulso: { titulo: 'Pulso', sub: '(latidos por minuto)', unidad: 'latidos por minuto', min: 30, max: 220, def: 72 }
-};
-const cuidadores = () => (ajustes.cuidadores || []).filter(Boolean);
-
-function iniciarRegistro(reg) {
-  const u = ordenados()[0];
-  editando = !!reg;
-  PASOS = ['sistolica', 'diastolica', 'pulso', 'animo', 'sintomas', 'nota'];
-  PASOS.push('quien', 'resumen');
-  borrador = reg ? JSON.parse(JSON.stringify(reg)) : {
-    id: nuevoId(), estado: 'Activo', quien: '',
-    sistolica: u ? u.sistolica : NUM.sistolica.def,
-    diastolica: u ? u.diastolica : NUM.diastolica.def,
-    pulso: u ? u.pulso : NUM.pulso.def,
-    estadoAnimo: null, sintomas: [], nota: ''
-  };
-  borrador.fechaLocal = reg ? isoALocal(reg.fechaHora) : ahoraLocal();
-  confirmado = {}; desdeResumen = false; paso = reg ? PASOS.length - 1 : 0;
-  ir('registro'); pintarPaso();
-}
-const idxResumen = () => PASOS.length - 1;
-function irPaso(nombre) { desdeResumen = true; paso = PASOS.indexOf(nombre); pintarPaso(); }
-
-function cabecera() { return `<p class="progress">Paso ${paso + 1} de ${PASOS.length - 1}</p>`; }
-function navBotones(textoSig = 'Siguiente ➜') {
-  return `<button class="primary full" onclick="siguiente()">${desdeResumen ? 'Listo ✔' : textoSig}</button>
-    <button class="full" onclick="atras()">⬅ ${paso === 0 && !desdeResumen ? 'Cancelar' : 'Atrás'}</button>`;
-}
-
-function pintarPaso() {
-  const p = PASOS[paso], w = $('wiz');
-  if (NUM[p]) {
-    const c = NUM[p];
-    w.innerHTML = `${cabecera()}<h1>${c.titulo} <small style="font-weight:400">${c.sub}</small></h1>
-      <p>Escriba el número o use los botones − y +.</p>
-      <div class="numbox">
-        <button aria-label="Restar uno" onclick="ajustarNum(-1)">−</button>
-        <input id="num" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="${c.titulo} ${c.sub}" value="${borrador[p] ?? ''}"
-          oninput="this.value=this.value.replace(/\\D/g,'').slice(0,3); borrador['${p}']=+this.value||null; confirmado['${p}']=false; $('aviso').innerHTML=''">
-        <button aria-label="Sumar uno" onclick="ajustarNum(1)">+</button>
-      </div>
-      <p class="unit">${c.unidad}</p><div id="aviso" aria-live="assertive"></div>${navBotones()}`;
-  } else if (p === 'animo') {
-    w.innerHTML = `${cabecera()}<h1>¿Cómo se siente de ánimo?</h1>
-      <div class="choices">${ANIMOS.map(a => `<button class="choice" aria-pressed="${borrador.estadoAnimo === a.v}"
-        onclick="borrador.estadoAnimo=${a.v}; pintarPaso()"><span class="ico">${a.ico}</span>${a.t}</button>`).join('')}</div>
-      <p>Se puede dejar sin responder.</p>${navBotones()}`;
-  } else if (p === 'sintomas') {
-    w.innerHTML = `${cabecera()}<h1>¿Siente algo en el cuerpo?</h1><p>Se pueden elegir varios.</p>
-      <div class="choices">${SINTOMAS.map(([id, ico, t]) => `<button class="choice" aria-pressed="${borrador.sintomas.includes(id)}"
-        onclick="toggleSintoma('${id}')"><span class="ico">${ico}</span>${t}</button>`).join('')}</div>
-      ${requiereAlerta(borrador) ? `<div class="msg danger" role="alert">🚨 ${ALERTA}</div>` : ''}
-      ${navBotones()}`;
-  } else if (p === 'nota') {
-    const voz = ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
-      ? `<button class="full" onclick="dictar()">🎤 Dictar la nota con la voz</button>` : '';
-    w.innerHTML = `${cabecera()}<h1>Nota y fecha</h1>
-      <label for="nota">Nota (opcional)</label>
-      <textarea id="nota" rows="3" placeholder="Por ejemplo: durmió poco anoche" oninput="borrador.nota=this.value">${esc(borrador.nota)}</textarea>
-      ${voz}
-      <label for="fecha">Fecha y hora de la medición</label>
-      <input id="fecha" type="datetime-local" value="${borrador.fechaLocal}" onchange="borrador.fechaLocal=this.value||ahoraLocal()">
-      ${navBotones()}`;
-  } else if (p === 'quien') {
-    const nombres = cuidadores();
-    w.innerHTML = `${cabecera()}<h1>¿Quién registra?</h1><p>Toque su nombre.</p>
-      ${nombres.length ? nombres.map(n => `<button class="choice quien grande-btn-quien" style="margin-bottom:10px;width:100%"
-        aria-pressed="${borrador.quien === n}" data-n="${esc(n)}" onclick="elegirQuien(this.dataset.n)">${esc(n)}</button>`).join('')
-        : `<div class="msg warn">No hay nombres configurados. Agréguelos en Ajustes o escriba el suyo aquí:</div>
-           <input id="qLibre" type="text" placeholder="Su nombre" value="${esc(borrador.quien)}" oninput="borrador.quien=this.value">
-           <button class="primary full" onclick="siguienteQuien()">Siguiente ➜</button>`}
-      <button class="full" onclick="atras()">⬅ Atrás</button>`;
-  } else {
-    const a = ANIMOS.find(x => x.v === borrador.estadoAnimo);
-    const fila = (lbl, val, n) => `<div class="sumrow"><span>${lbl}<br><b>${val}</b></span><button class="link" onclick="irPaso('${n}')">Cambiar</button></div>`;
-    w.innerHTML = `<h1>Revise antes de guardar</h1><div class="card">
-      ${fila('Número de arriba (sistólica)', borrador.sistolica + ' mmHg', 'sistolica')}
-      ${fila('Número de abajo (diastólica)', borrador.diastolica + ' mmHg', 'diastolica')}
-      ${fila('Pulso', borrador.pulso + ' latidos por minuto', 'pulso')}
-      ${fila('Ánimo', a ? a.ico + ' ' + a.t : 'No indicó', 'animo')}
-      ${fila('Síntomas', borrador.sintomas.length ? borrador.sintomas.map(nombreSintoma).join(', ') : 'No indicó', 'sintomas')}
-      ${fila('Nota', esc(borrador.nota) || '—', 'nota')}
-      ${fila('Fecha', esc(fmtFecha(borrador.fechaLocal)), 'nota')}
-      ${fila('Registra', esc(borrador.quien) || '—', 'quien')}
-      <p style="margin-top:12px">Estado: ${badge(borrador.sistolica, borrador.diastolica)}</p></div>
-      ${requiereAlerta(borrador) ? `<div class="msg danger" role="alert">🚨 ${ALERTA}</div>` : ''}
-      <button class="primary full" onclick="guardar()">💾 Guardar</button>
-      <button class="full" onclick="atras()">⬅ ${editando ? 'Cancelar' : 'Atrás'}</button>`;
-  }
-  const h = w.querySelector('h1'); if (h) { h.tabIndex = -1; h.focus(); }
-}
-
-function ajustarNum(d) {
-  const p = PASOS[paso], c = NUM[p];
-  borrador[p] = Math.max(1, (borrador[p] || c.def) + d);
-  confirmado[p] = false; $('num').value = borrador[p]; $('aviso').innerHTML = '';
-}
-function toggleSintoma(id) {
-  let s = borrador.sintomas;
-  if (id === 'ninguno') s = s.includes('ninguno') ? [] : ['ninguno'];
-  else { s = s.filter(x => x !== 'ninguno'); s = s.includes(id) ? s.filter(x => x !== id) : [...s, id]; }
-  borrador.sintomas = s; pintarPaso();
-}
-function dictar() {
-  const R = window.SpeechRecognition || window.webkitSpeechRecognition, r = new R();
-  r.lang = 'es-CO';
-  r.onresult = e => { borrador.nota = (borrador.nota ? borrador.nota + ' ' : '') + e.results[0][0].transcript; $('nota').value = borrador.nota; };
-  r.onerror = () => toast('No se pudo usar el micrófono.');
-  r.start(); toast('Hable ahora…');
-}
-function elegirQuien(n) { borrador.quien = n; desdeResumen = false; paso = idxResumen(); pintarPaso(); }
-function siguienteQuien() {
-  borrador.quien = (borrador.quien || '').trim();
-  if (!borrador.quien) { toast('Escriba su nombre.'); return; }
-  paso = idxResumen(); pintarPaso();
-}
-
-function siguiente() {
-  const p = PASOS[paso];
-  if (NUM[p]) {
-    const v = borrador[p], c = NUM[p];
-    if (!v) { $('aviso').innerHTML = '<div class="msg warn">Por favor escriba un número.</div>'; return; }
-    let raro = null;
-    if (v < c.min || v > c.max) raro = 'Este número parece muy alto o muy bajo.';
-    if (p === 'diastolica' && v >= borrador.sistolica) raro = 'El número de abajo suele ser menor que el de arriba.';
-    if (raro && !confirmado[p]) {
-      confirmado[p] = true;
-      $('aviso').innerHTML = `<div class="msg warn" role="alert">⚠️ ${raro} Revíselo. Si está seguro, toque el botón otra vez.</div>`;
-      return;
-    }
-  }
-  if (desdeResumen) { desdeResumen = false; paso = idxResumen(); } else paso++;
-  pintarPaso();
-}
-function atras() {
-  if (desdeResumen) { desdeResumen = false; paso = idxResumen(); pintarPaso(); return; }
-  if (PASOS[paso] === 'resumen' && editando) { ir('historial'); return; }
-  if (paso === 0) { ir('inicio'); return; }
-  paso--; pintarPaso();
-}
-
-function guardar() {
-  if (!borrador.quien) { toast('Falta indicar quién registra.'); irPaso('quien'); return; }
-  const r = {
-    id: borrador.id, rev: '', fechaHora: new Date(borrador.fechaLocal).toISOString(), quien: borrador.quien,
-    sistolica: borrador.sistolica, diastolica: borrador.diastolica, pulso: borrador.pulso,
-    estadoAnimo: borrador.estadoAnimo, sintomas: borrador.sintomas, nota: borrador.nota || '',
-    dispositivo: ajustes.disp, estado: 'Activo'
-  };
-  guardarRegistro(r);
-  const pulsoMsg = (r.pulso < 60 || r.pulso > 100) ? '<p>ℹ️ El pulso está fuera del rango habitual en reposo (60 a 100).</p>' : '';
-  $('guardadoInfo').innerHTML = `<div class="card"><p class="big-values">${r.sistolica}/${r.diastolica}</p>
-    <p>Pulso: ${r.pulso}</p><p>${badge(r.sistolica, r.diastolica)}</p>${pulsoMsg}
-    <p>${configurado() ? 'Se enviará a la hoja de Google (mire la barra de arriba).' : 'Guardado solo en este celular. Falta conectar la hoja.'}</p></div>
-    ${requiereAlerta(r) ? `<div class="msg danger" role="alert">🚨 ${ALERTA}</div>
-      ${configurado() ? '<div class="msg warn">Se enviará un aviso por correo a los familiares configurados.</div>' : ''}` : ''}
-    <p class="disclaimer">Mensaje orientativo. Esta aplicación no reemplaza la consulta médica.</p>`;
-  ir('guardado');
-}
-
-// ===================== Historial =====================
-let filtroActual = 7;
-const enPeriodo = dias => ordenados().filter(r => !dias || (Date.now() - new Date(r.fechaHora)) <= dias * 864e5);
-function filtrar(dias) {
-  filtroActual = dias;
-  document.querySelectorAll('.filtro').forEach(b => {
-    const on = +b.dataset.dias === dias;
-    b.classList.toggle('primary', on); b.setAttribute('aria-pressed', on);
+function sincronizar(){
+  if(!conectado()||sincronizando){pintarBarra();return Promise.resolve()}
+  if(!navigator.onLine){pintarBarra();return Promise.resolve()}
+  sincronizando=true;estadoBarra='';pintarBarra();
+  var ids=Object.keys(S.pend);
+  var cadena=Promise.resolve();
+  ids.forEach(function(id){
+    cadena=cadena.then(function(){
+      var r=S.regs[id];if(!r){delete S.pend[id];return}
+      return post(r).then(function(res){
+        if(res&&res.ok){delete S.pend[id];guardarLocal()}
+        else throw res||{};
+      });
+    });
   });
-  const lista = enPeriodo(dias);
-  $('lista').innerHTML = lista.length ? lista.map(r => {
-    const a = ANIMOS.find(x => x.v === r.estadoAnimo);
-    const pend = cola.some(x => x.id === r.id) ? ' <span title="Pendiente de enviar">⏳</span>' : '';
-    return `<div class="card"><p><b>${esc(fmtFecha(r.fechaHora))}</b>${pend}</p>
-      <p class="big-values">${r.sistolica}/${r.diastolica} <small style="font-size:1rem">· pulso ${r.pulso}</small></p>
-      <p>${badge(r.sistolica, r.diastolica)}</p>
-      <p>Registró: ${esc(r.quien)}</p>
-      ${a ? `<p>Ánimo: ${a.ico} ${a.t}</p>` : ''}
-      ${r.sintomas.length ? `<p>Síntomas: ${r.sintomas.map(nombreSintoma).join(', ')}</p>` : ''}
-      ${r.nota ? `<p>Nota: ${esc(r.nota)}</p>` : ''}
-      <div class="row"><button onclick="editar('${esc(r.id)}')">✏️ Corregir</button><button onclick="eliminar('${esc(r.id)}')">🗑️ Borrar</button></div></div>`;
-  }).join('') : '<div class="card"><p>No hay registros en este periodo.</p></div>';
-}
-function editar(id) { iniciarRegistro(regs[id]); }
-function eliminar(id) {
-  const r = regs[id];
-  if (!confirm(`¿Borrar el registro ${r.sistolica}/${r.diastolica} del ${fmtFecha(r.fechaHora)}?\n\nQuedará marcado como eliminado en la hoja de Google.`)) return;
-  guardarRegistro({ ...r, estado: 'Eliminado' }); filtrar(filtroActual);
-  toast('Registro borrado.', () => { guardarRegistro({ ...r, estado: 'Activo' }); filtrar(filtroActual); });
+  return cadena.then(function(){return get('accion=listar&codigo='+encodeURIComponent(S.cfg.cod))})
+  .then(function(res){
+    if(!res||!res.ok)throw res||{};
+    var remotos={};
+    res.registros.forEach(function(r){remotos[r.id]=r;
+      var l=S.regs[r.id];
+      if(S.pend[r.id])return;
+      if(!l||String(r.rev)>String(l.rev))S.regs[r.id]=r;
+    });
+    Object.keys(S.regs).forEach(function(id){if(!S.pend[id]&&!remotos[id])delete S.regs[id]});
+    S.ultSync=Date.now();guardarLocal();
+  }).catch(function(e){
+    estadoBarra=(e&&e.error)?errTexto(e):'';
+  }).then(function(){sincronizando=false;pintarBarra();pintarInicio()});
 }
 
-// ===================== Tendencias =====================
-function promedio(lista) {
-  if (!lista.length) return null;
-  const m = k => Math.round(lista.reduce((s, r) => s + r[k], 0) / lista.length);
-  return { s: m('sistolica'), d: m('diastolica'), p: m('pulso'), n: lista.length };
+/* ---------- inicio ---------- */
+function activos(){return Object.keys(S.regs).map(function(i){return S.regs[i]}).filter(function(r){return r.estado==='Activo'}).sort(function(a,b){return new Date(b.fechaHora)-new Date(a.fechaHora)})}
+function fmt(iso){var d=new Date(iso);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}
+function prom(dias){
+  var lim=Date.now()-dias*86400000,a=activos().filter(function(r){return new Date(r.fechaHora).getTime()>=lim});
+  if(!a.length)return'-';
+  var m=function(k){return Math.round(a.reduce(function(s,r){return s+r[k]},0)/a.length)};
+  return m('sistolica')+'/'+m('diastolica')+' (pulso '+m('pulso')+')';
 }
-function pintarTendencias() {
-  $('reporteEncabezado').textContent = `Reporte de presión arterial${ajustes.paciente ? ' — ' + ajustes.paciente : ''} · ${new Date().toLocaleDateString('es-CO')}`;
-  const bloque = (t, p) => p
-    ? `<div><p><b>${t}</b> (${p.n} mediciones)</p><p class="big-values">${p.s}/${p.d}</p><p>Pulso promedio: ${p.p}</p><p>${badge(p.s, p.d)}</p></div>`
-    : `<div><p><b>${t}</b></p><p>Sin datos</p></div>`;
-  $('promedios').innerHTML = `<h2>Promedios</h2><div class="row">${bloque('Últimos 7 días', promedio(enPeriodo(7)))}${bloque('Últimos 30 días', promedio(enPeriodo(30)))}</div>`;
-  const datos = enPeriodo(30).reverse();
-  $('grafico').innerHTML = datos.length < 2 ? '<p>Se necesitan al menos 2 registros en los últimos 30 días para dibujar el gráfico.</p>' : grafico(datos);
-  const todos = ordenados();
-  $('tabla').innerHTML = todos.length ? `<table><thead><tr><th>Fecha</th><th>Arriba</th><th>Abajo</th><th>Pulso</th><th>Registró</th><th>Síntomas</th></tr></thead><tbody>
-    ${todos.map(r => `<tr><td>${new Date(r.fechaHora).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${r.sistolica}</td><td>${r.diastolica}</td><td>${r.pulso}</td><td>${esc(r.quien)}</td><td>${r.sintomas.filter(s => s !== 'ninguno').map(nombreSintoma).join(', ')}</td></tr>`).join('')}
-    </tbody></table>` : '<p>Sin registros.</p>';
-  const a = $('verHoja'); a.style.display = ajustes.hoja ? '' : 'none'; if (ajustes.hoja) a.href = ajustes.hoja;
+function pintarInicio(){
+  var a=activos();
+  $('resumen').innerHTML='<h2>'+esc(S.cfg.pac||'Resumen')+'</h2>'+
+    '<div>Mediciones: <b>'+a.length+'</b></div>'+
+    '<div>Promedio 7 días: <b>'+prom(7)+'</b></div>'+
+    '<div>Promedio 30 días: <b>'+prom(30)+'</b></div>';
+  if(!a.length){$('lista').innerHTML='<div class="vacio">Aún no hay registros.</div>';return}
+  $('lista').innerHTML=a.map(function(r){
+    var c=clasif(r.sistolica,r.diastolica);
+    var s=(r.sintomas||[]).map(function(k){return SINT[k]}).filter(Boolean).join(', ');
+    return '<div class="card reg '+c.c+'"><div class="val">'+r.sistolica+'/'+r.diastolica+' <span style="font-size:16px;font-weight:600">pulso '+r.pulso+'</span></div>'+
+      '<span class="etq">'+esc(c.t)+'</span>'+
+      '<small>'+esc(fmt(r.fechaHora))+' · '+esc(r.quien)+(S.pend[r.id]?' · ⏳ pendiente':'')+'</small>'+
+      (r.estadoAnimo?'<small>Ánimo: '+esc(ANIMOS[r.estadoAnimo-1])+'</small>':'')+
+      (s?'<small>Síntomas: '+esc(s)+'</small>':'')+
+      (r.nota?'<small>Nota: '+esc(r.nota)+'</small>':'')+
+      '<div class="acc"><button data-ed="'+esc(r.id)+'">✏️ Corregir</button><button data-bo="'+esc(r.id)+'">🗑️ Borrar</button></div></div>';
+  }).join('');
 }
-function grafico(datos) {
-  const W = 600, H = 280, L = 44, R = 12, T = 12, B = 36, ymin = 40, ymax = 200;
-  const x = i => L + (W - L - R) * (datos.length === 1 ? .5 : i / (datos.length - 1));
-  const y = v => T + (H - T - B) * (1 - (Math.min(Math.max(v, ymin), ymax) - ymin) / (ymax - ymin));
-  const linea = (k, col, forma) => `<polyline fill="none" stroke="${col}" stroke-width="3" points="${datos.map((r, i) => `${x(i)},${y(r[k])}`).join(' ')}"/>` +
-    datos.map((r, i) => forma === 'c' ? `<circle cx="${x(i)}" cy="${y(r[k])}" r="5" fill="${col}"/>` : `<rect x="${x(i) - 5}" y="${y(r[k]) - 5}" width="10" height="10" fill="${col}"/>`).join('');
-  const grid = [60, 80, 100, 120, 140, 160, 180].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#ddd"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
-  const ref = `<line x1="${L}" x2="${W - R}" y1="${y(130)}" y2="${y(130)}" stroke="#b00020" stroke-dasharray="6 4" opacity=".5"/>
-    <line x1="${L}" x2="${W - R}" y1="${y(80)}" y2="${y(80)}" stroke="#0b4f8a" stroke-dasharray="6 4" opacity=".5"/>`;
-  const fechas = [0, datos.length - 1].map(i => `<text x="${x(i)}" y="${H - 10}" text-anchor="${i ? 'end' : 'start'}">${new Date(datos[i].fechaHora).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Gráfico de presión de los últimos 30 días. Los valores están en la tabla de abajo.">
-    ${grid}${ref}${linea('sistolica', '#b00020', 'c')}${linea('diastolica', '#0b4f8a', 'r')}${fechas}</svg>
-    <p style="font-size:.85rem">Líneas punteadas: 130 (arriba) y 80 (abajo), referencia orientativa.</p>`;
-}
+$('lista').onclick=function(e){
+  var t=e.target;
+  if(t.dataset.ed)abrirForm(t.dataset.ed);
+  if(t.dataset.bo)borrar(t.dataset.bo);
+};
 
-// ===================== Ajustes y conexión =====================
-function pintarAjustes() {
-  $('cUrl').value = ajustes.url; $('cCodigo').value = ajustes.codigo; $('cPaciente').value = ajustes.paciente;
-  const n = ajustes.cuidadores || []; $('cQ1').value = n[0] || ''; $('cQ2').value = n[1] || ''; $('cQ3').value = n[2] || '';
-  $('cHoja').value = ajustes.hoja; $('cDisp').value = ajustes.disp; $('resConexion').innerHTML = '';
+/* ---------- formulario ---------- */
+function ahoraLocal(d){d=d||new Date();var p=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+function pintarChips(){
+  $('animos').innerHTML=ANIMOS.map(function(n,i){return '<div class="chip'+(F.animo===i+1?' on':'')+'" data-a="'+(i+1)+'">'+(i+1)+'<br>'+n+'</div>'}).join('');
+  $('sintomas').innerHTML=Object.keys(SINT).map(function(k){return '<div class="chip'+(F.sint[k]?' on':'')+'" data-s="'+k+'">'+SINT[k]+'</div>'}).join('');
+  $('quien').innerHTML=(S.cfg.per||[]).map(function(n){return '<div class="chip'+(F.quien===n?' on':'')+'" data-q="'+esc(n)+'">'+esc(n)+'</div>'}).join('')||'<span class="nota">Agregue los nombres en Ajustes.</span>';
 }
-function leerFormulario() {
-  ajustes.url = $('cUrl').value.trim(); ajustes.codigo = $('cCodigo').value.trim();
-  ajustes.paciente = $('cPaciente').value.trim();
-  ajustes.cuidadores = [$('cQ1').value, $('cQ2').value, $('cQ3').value].map(s => s.trim()).filter(Boolean);
-  ajustes.hoja = $('cHoja').value.trim(); ajustes.disp = $('cDisp').value.trim() || ajustes.disp;
-}
-async function guardarConexion() {
-  leerFormulario(); persistir();
-  const res = $('resConexion');
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(ajustes.url)) {
-    res.innerHTML = '<div class="msg warn">La dirección del script debe empezar con https://script.google.com/macros/s/ y terminar en /exec.</div>'; pintarEstado(); return;
+$('animos').onclick=function(e){var a=e.target.closest('[data-a]');if(!a)return;var v=+a.dataset.a;F.animo=F.animo===v?null:v;pintarChips()};
+$('sintomas').onclick=function(e){var s=e.target.closest('[data-s]');if(!s)return;var k=s.dataset.s;
+  if(k==='ninguno'){F.sint=F.sint.ninguno?{}:{ninguno:true}}else{delete F.sint.ninguno;F.sint[k]=!F.sint[k];if(!F.sint[k])delete F.sint[k]}
+  pintarChips()};
+$('quien').onclick=function(e){var q=e.target.closest('[data-q]');if(!q)return;F.quien=q.dataset.q;pintarChips()};
+
+function abrirForm(id){
+  F={id:id||null,animo:null,sint:{},quien:''};
+  $('errForm').textContent='';
+  if(id&&S.regs[id]){
+    var r=S.regs[id];
+    $('tituloForm').textContent='Corregir registro';
+    $('fS').value=r.sistolica;$('fD').value=r.diastolica;$('fP').value=r.pulso;$('fN').value=r.nota||'';
+    $('fF').value=ahoraLocal(new Date(r.fechaHora));
+    F.animo=r.estadoAnimo||null;(r.sintomas||[]).forEach(function(k){F.sint[k]=true});F.quien=r.quien;
+  }else{
+    $('tituloForm').textContent='Registrar presión';
+    $('fS').value='';$('fD').value='';$('fP').value='';$('fN').value='';$('fF').value=ahoraLocal();
   }
-  if (!ajustes.codigo) { res.innerHTML = '<div class="msg warn">Falta el código familiar.</div>'; return; }
-  res.innerHTML = '<div class="msg">🔄 Probando la conexión…</div>';
-  try {
-    const r = await llamar('GET', null, { accion: 'listar', codigo: ajustes.codigo });
-    if (r.ok) {
-      res.innerHTML = `<div class="msg ok">✅ Conexión correcta. La hoja tiene ${r.registros.length} registro(s).</div>`;
-      sync();
-    } else if (r.error === 'codigo') res.innerHTML = '<div class="msg danger">El código familiar no coincide con el de la hoja.</div>';
-    else res.innerHTML = `<div class="msg danger">La hoja respondió con un error: ${esc(r.error)}</div>`;
-  } catch (e) {
-    res.innerHTML = e.respuestaInvalida
-      ? '<div class="msg danger">La dirección responde, pero no es la de la aplicación web. Revise que esté publicada con acceso "Cualquier persona".</div>'
-      : '<div class="msg danger">No se pudo conectar. Revise la dirección y la conexión a internet.</div>';
-  }
-  pintarEstado();
+  pintarChips();vista('vForm');
 }
-function codificar(o) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
-function decodificar(s) { return JSON.parse(decodeURIComponent(escape(atob(s)))); }
-async function compartirConfig() {
-  leerFormulario(); persistir();
-  if (!configurado()) { toast('Primero complete y guarde la conexión.'); return; }
-  const cfg = { u: ajustes.url, c: ajustes.codigo, p: ajustes.paciente, n: ajustes.cuidadores, h: ajustes.hoja };
-  const enlace = location.href.split('#')[0] + '#cfg=' + encodeURIComponent(codificar(cfg));
-  try {
-    if (navigator.share) { await navigator.share({ title: 'Configurar Mi Presión', text: 'Abra este enlace para conectar la app con la hoja familiar:', url: enlace }); return; }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(enlace); toast('Enlace copiado. Péguelo en un mensaje.'); }
-  catch { prompt('Copie este enlace:', enlace); }
+$('bNuevo').onclick=function(){abrirForm()};
+$('bCancelar').onclick=function(){vista('vInicio')};
+
+function nuevaRev(prev){
+  var n=Date.now();if(prev&&+prev>=n)n=+prev+1;
+  return String(n).padStart(13,'0');
 }
-function aplicarHash() {
-  const m = location.hash.match(/^#cfg=(.+)$/);
-  if (!m) return;
-  try {
-    const c = decodificar(decodeURIComponent(m[1]));
-    ajustes.url = c.u || ''; ajustes.codigo = c.c || ''; ajustes.paciente = c.p || '';
-    ajustes.cuidadores = c.n || []; ajustes.hoja = c.h || '';
-    persistir(); toast('✅ Configuración recibida. Conectando…');
-  } catch { toast('El enlace de configuración no es válido.'); }
-  history.replaceState(null, '', location.pathname + location.search);
-}
-function setEscala(e) { ajustes.escala = e; persistir(); document.documentElement.style.setProperty('--scale', e); }
-function exportar() {
-  const blob = new Blob([JSON.stringify({ version: 2, registros: Object.values(regs) }, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `mi-presion-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-  toast('Copia descargada.');
-}
-function olvidarLocal() {
-  if (cola.length && !confirm(`Hay ${cola.length} registro(s) sin enviar que se perderían. ¿Continuar de todos modos?`)) return;
-  if (!confirm('¿Olvidar los datos guardados en este celular? No se borra nada de la hoja de Google.')) return;
-  regs = {}; cola = []; ultimaSync = 0; persistir(); refrescarPantalla(); pintarEstado(); sync(); toast('Memoria del celular borrada.');
+function idNuevo(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+$('bGuardar').onclick=function(){
+  var s=parseInt($('fS').value,10),d=parseInt($('fD').value,10),p=parseInt($('fP').value,10);
+  var err='';
+  if(!(s>=1&&s<=400))err='Escriba el número de arriba (entre 1 y 400).';
+  else if(!(d>=1&&d<=400))err='Escriba el número de abajo (entre 1 y 400).';
+  else if(!(p>=1&&p<=400))err='Escriba el pulso (entre 1 y 400).';
+  else if(!$('fF').value||isNaN(new Date($('fF').value).getTime()))err='Elija la fecha y la hora.';
+  else if(!F.quien)err='Toque su nombre en "¿Quién registra?".';
+  else if(d>=s)err='El número de abajo debe ser menor que el de arriba. Revise los valores.';
+  if(err){$('errForm').textContent=err;return}
+  var prev=F.id?S.regs[F.id]:null;
+  var r={
+    id:F.id||idNuevo(),rev:nuevaRev(prev&&prev.rev),
+    fechaHora:new Date($('fF').value).toISOString(),quien:F.quien,
+    sistolica:s,diastolica:d,pulso:p,
+    estadoAnimo:F.animo,sintomas:Object.keys(F.sint).filter(function(k){return F.sint[k]}),
+    nota:$('fN').value.trim(),dispositivo:S.cfg.disp||'',estado:'Activo'
+  };
+  S.regs[r.id]=r;S.pend[r.id]=true;guardarLocal();
+  vista('vInicio');pintarInicio();pintarBarra();
+  if(necesitaAlerta(r))avisoEmergencia(r);
+  sincronizar();
+};
+
+function borrar(id){
+  var r=S.regs[id];if(!r)return;
+  if(!confirm('¿Borrar la medición '+r.sistolica+'/'+r.diastolica+' del '+fmt(r.fechaHora)+'?'))return;
+  r.estado='Eliminado';r.rev=nuevaRev(r.rev);r.dispositivo=S.cfg.disp||r.dispositivo;
+  S.pend[id]=true;guardarLocal();pintarInicio();pintarBarra();sincronizar();
 }
 
-// ===================== Arranque =====================
-document.documentElement.style.setProperty('--scale', ajustes.escala || 1);
-aplicarHash();
-persistir();
-pintarInicio(); pintarEstado(); sync();
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+function avisoEmergencia(r){
+  var c=clasif(r.sistolica,r.diastolica);
+  var tieneSint=(r.sintomas||[]).some(function(k){return k==='dolor_pecho'||k==='falta_aire'});
+  $('modalCaja').innerHTML='<h3>⚠️ Atención</h3><p><b>'+r.sistolica+'/'+r.diastolica+'</b> · '+esc(c.t)+'</p>'+
+    '<p>'+(tieneSint?'Hay síntomas que requieren atención. ':'')+'Si hay dolor de pecho, falta de aire o debilidad repentina, busque atención médica de inmediato o llame a la línea de emergencias <b>123</b>.</p>'+
+    '<p class="nota">Este mensaje es informativo y no es un diagnóstico.</p>'+
+    '<button class="btn" id="mOk">Entendido</button>';
+  $('modal').classList.remove('oculto');
+  $('mOk').onclick=function(){$('modal').classList.add('oculto')};
+}
+
+/* ---------- ajustes ---------- */
+function abrirAjustes(){
+  var c=S.cfg;
+  $('aUrl').value=c.url||'';$('aCod').value=c.cod||'';$('aPac').value=c.pac||'';
+  $('aPer').value=(c.per||[]).join(', ');$('aHoja').value=c.hoja||'';$('aDisp').value=c.disp||'';
+  $('msgAj').textContent='';vista('vAjustes');
+}
+$('bAjustes').onclick=abrirAjustes;
+$('bVolver').onclick=function(){vista('vInicio');pintarInicio()};
+function leerAjustes(){
+  return{url:$('aUrl').value.trim(),cod:$('aCod').value.trim(),pac:$('aPac').value.trim(),
+    per:$('aPer').value.split(',').map(function(x){return x.trim()}).filter(Boolean),
+    hoja:$('aHoja').value.trim(),disp:$('aDisp').value.trim()};
+}
+$('bProbar').onclick=function(){
+  var c=leerAjustes(),m=$('msgAj');
+  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(c.url)){m.style.color='#b00020';m.textContent='La dirección debe empezar por https://script.google.com y terminar en /exec (sin /u/0/ ni /u/3/).';return}
+  if(!c.cod){m.style.color='#b00020';m.textContent='Escriba el código familiar.';return}
+  m.style.color='#5d6b7a';m.textContent='Probando…';
+  var u=c.url+'?accion=listar&codigo='+encodeURIComponent(c.cod);
+  fetch(u,{redirect:'follow'}).then(function(r){return r.json()}).then(function(res){
+    if(res&&res.ok){S.cfg=c;guardarLocal();m.style.color='#1e7e34';m.textContent='✅ Conexión correcta';estadoBarra='';sincronizar()}
+    else{m.style.color='#b00020';m.textContent=errTexto(res)}
+  }).catch(function(){m.style.color='#b00020';m.textContent='❌ La dirección del script no responde bien. Revise que termine en /exec y que el acceso sea "Cualquier persona".'});
+};
+$('bCompartir').onclick=function(){
+  var c=S.cfg;if(!conectado()){$('msgAj').textContent='Primero guarde la conexión.';return}
+  var datos={url:c.url,cod:c.cod,pac:c.pac,per:c.per,hoja:c.hoja};
+  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(datos)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  var enlace=location.origin+location.pathname+'#cfg='+b64;
+  var texto='Configuración de Mi Presión (solo para la familia): '+enlace;
+  if(navigator.share){navigator.share({title:'Mi Presión',text:texto}).catch(function(){})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(enlace).then(function(){$('msgAj').textContent='Enlace copiado. Péguelo en WhatsApp.'})}
+  else prompt('Copie este enlace:',enlace);
+};
+$('bHoja').onclick=function(){if(S.cfg.hoja)window.open(S.cfg.hoja,'_blank');else{$('msgAj').style.color='#b00020';$('msgAj').textContent='No hay enlace de la hoja guardado.'}};
+$('bOlvidar').onclick=function(){
+  if(!confirm('Se borrarán los registros guardados en este celular (no los de la hoja). Los pendientes de enviar se perderán. ¿Continuar?'))return;
+  S.regs={};S.pend={};guardarLocal();pintarInicio();sincronizar();$('msgAj').textContent='Datos locales borrados.';
+};
+
+/* ---------- enlace de configuración ---------- */
+function leerHash(){
+  var m=location.hash.match(/^#cfg=([\w-]+)/);if(!m)return;
+  try{
+    var b=m[1].replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';
+    var d=JSON.parse(decodeURIComponent(escape(atob(b))));
+    if(d&&d.url&&d.cod){
+      S.cfg.url=String(d.url);S.cfg.cod=String(d.cod);S.cfg.pac=String(d.pac||'');
+      S.cfg.per=Array.isArray(d.per)?d.per.map(String):[];S.cfg.hoja=String(d.hoja||'');
+      guardarLocal();
+      history.replaceState(null,'',location.pathname);
+      alert('✅ Configuración recibida. Ahora escriba el nombre de este celular en Ajustes.');
+      abrirAjustes();return true;
+    }
+  }catch(e){}
+}
+
+/* ---------- inicio ---------- */
+cargar();
+var vino=leerHash();
+pintarBarra();pintarInicio();
+if(!vino&&!conectado())abrirAjustes();
+window.addEventListener('online',sincronizar);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)sincronizar()});
+if(conectado())sincronizar();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
 </script>
 </body>
 </html>
