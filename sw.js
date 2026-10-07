@@ -1,6 +1,6 @@
 // Service worker: guarda la app para que abra sin internet.
 // Las llamadas al script de Google nunca se guardan en caché.
-var CACHE = 'mipresion-v1';
+var CACHE = 'mipresion-v2';
 var ARCHIVOS = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
